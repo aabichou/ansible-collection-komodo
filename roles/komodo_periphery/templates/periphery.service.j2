@@ -21,8 +21,9 @@ TimeoutStopSec=30s
 # Harden the service slightly.
 PrivateTmp=true
 NoNewPrivileges=true
-# Root runs as root so Docker socket access works out of the box.
-# If running as an unprivileged user, add that user to the docker group.
+# The role creates the service user and adds it to the 'docker' group
+# automatically (periphery_manage_user: true). Disable if managing the
+# user externally, or set periphery_user: root to skip user management.
 
 [Install]
 WantedBy=multi-user.target

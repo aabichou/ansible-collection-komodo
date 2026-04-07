@@ -39,13 +39,20 @@
       ansible.builtin.setup:
 
 # ── Phase 2: Install Docker on all nodes ─────────────────────────────────────
+# Set komodo_manage_docker: false (host/group var) to skip this phase entirely
+# when Docker is already managed externally.
+# Set komodo_docker_hosts to target a specific group (default: all).
 - name: Install Docker
-  hosts: all
+  hosts: "{{ komodo_docker_hosts | default('all') }}"
   gather_facts: false
   become: true
   tags: [docker]
   roles:
     - role: geerlingguy.docker
+      vars:
+        docker_install_compose_plugin: true
+        docker_users: "{{ komodo_docker_users | default([]) }}"
+      when: komodo_manage_docker | default(true)
 
 # ── Phase 3: Deploy Komodo Core ───────────────────────────────────────────────
 - name: Deploy Komodo Core

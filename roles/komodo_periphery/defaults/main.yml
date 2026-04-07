@@ -5,7 +5,7 @@
 # ---------------------------------------------------------------------------
 
 # ---- Binary ----------------------------------------------------------------
-komodo_version: "2.1.1"     # inherited from group_vars/all.yml normally
+komodo_version: "2.1.1" # inherited from group_vars/all.yml normally
 
 # Map ansible_architecture → release asset suffix
 _periphery_arch_map:
@@ -18,11 +18,14 @@ periphery_binary_url: >-
 periphery_binary_path: /usr/local/bin/periphery
 
 # ---- Runtime user ----------------------------------------------------------
-# Periphery runs as root by default (same as the official install script)
-# to allow full Docker and system access. Set to a less-privileged user
-# and ensure it is in the `docker` group if you prefer.
-periphery_user: root
-periphery_group: root
+# Periphery runs as a dedicated system user for improved security.
+# The role creates the user/group and adds it to the 'docker' group
+# automatically when periphery_manage_user is true.
+# Set periphery_user: root only if you require full system access and
+# accept the security trade-off; periphery_manage_user is ignored for root.
+periphery_user: komodo
+periphery_group: komodo
+periphery_manage_user: true
 
 # ---- Directories -----------------------------------------------------------
 periphery_root_directory: /etc/komodo
@@ -66,8 +69,8 @@ periphery_stats_polling_rate: "5-sec"
 periphery_container_stats_polling_rate: "30-sec"
 
 # ---- Logging ---------------------------------------------------------------
-periphery_logging_level: info          # off, error, warn, info, debug, trace
-periphery_logging_stdio: standard      # standard, json, none
+periphery_logging_level: info # off, error, warn, info, debug, trace
+periphery_logging_stdio: standard # standard, json, none
 periphery_logging_pretty: false
 periphery_pretty_startup_config: false
 

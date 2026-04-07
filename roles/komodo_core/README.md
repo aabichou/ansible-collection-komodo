@@ -38,7 +38,7 @@ Optional Traefik reverse-proxy integration (TLS termination, routing by subdomai
 | `komodo_core_dir` | `/opt/komodo` | Compose project root on the host |
 | `komodo_core_backups_path` | `/etc/komodo/backups` | Host path for backups volume |
 | `komodo_core_port` | `9120` | Host port the Core container listens on |
-| `komodo_host` | `http://<host-ip>:9120` | Public URL used for OAuth callbacks and webhook hints |
+| `komodo_core_public_url` | `http://<host-ip>:9120` | Public URL used for OAuth callbacks and webhook hints |
 | `komodo_title` | `Komodo` | Browser tab / UI title |
 | `komodo_timezone` | `Etc/UTC` | TZ identifier (e.g. `Europe/Paris`) |
 
@@ -120,7 +120,7 @@ Optional Traefik reverse-proxy integration (TLS termination, routing by subdomai
 |---|---|---|
 | `komodo_oidc_enabled` | `false` | Enable OIDC login |
 | `komodo_oidc_provider` | `""` | OIDC issuer URL |
-| `komodo_oidc_redirect_host` | `""` | Redirect URI base (usually same as `komodo_host`) |
+| `komodo_oidc_redirect_host` | `""` | Redirect URI base (usually same as `komodo_core_public_url`) |
 | `komodo_oidc_client_id` | `""` | OIDC client ID |
 | `komodo_oidc_client_secret` | `""` | OIDC client secret |
 | `komodo_oidc_use_full_email` | `false` | Use full email as Komodo username |
@@ -206,7 +206,7 @@ and let Core auto-register the local Periphery:
     komodo_webhook_secret: "{{ vault_komodo_webhook_secret }}"
     komodo_db_password: "{{ vault_komodo_db_password }}"
     komodo_init_admin_password: "{{ vault_komodo_init_admin_password }}"
-    komodo_host: "https://komodo.example.com"
+    komodo_core_public_url: "https://komodo.example.com"
     traefik_enabled: true
     traefik_external_tld: "example.com"
     traefik_core_subdomain: "komodo"
@@ -222,7 +222,7 @@ and let Core auto-register the local Periphery:
 
 ```yaml
 vars:
-  komodo_host: "https://komodo.example.com"
+  komodo_core_public_url: "https://komodo.example.com"
   komodo_oidc_enabled: true
   komodo_oidc_provider: "https://keycloak.example.com/realms/myrealm"
   komodo_oidc_redirect_host: "https://komodo.example.com"

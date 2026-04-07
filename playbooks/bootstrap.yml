@@ -38,15 +38,14 @@
   gather_facts: false
   run_once: true
   vars:
-    _api_url:              "{{ komodo_host }}"
-    _key_name:             "ansible-automation"
-    _creds_file:           "{{ komodo_api_creds_file | default(playbook_dir + '/.komodo_api_creds.json') }}"
+    _api_url: "{{ komodo_core_public_url }}"
+    _key_name: "ansible-automation"
+    _creds_file: "{{ komodo_api_creds_file | default(playbook_dir + '/.komodo_api_creds.json') }}"
     _onboarding_keys_file: "{{ komodo_onboarding_keys_file | default(playbook_dir + '/.komodo_onboarding_keys.json') }}"
-    _admin_username:       "{{ komodo_init_admin_username | default('admin') }}"
-    _admin_password:       "{{ komodo_init_admin_password }}"
+    _admin_username: "{{ komodo_init_admin_username | default('admin') }}"
+    _admin_password: "{{ komodo_init_admin_password }}"
 
   tasks:
-
     # ── 1. Wait for Core API ──────────────────────────────────────────────────
     - name: Wait for Komodo Core API to become reachable
       ansible.builtin.uri:

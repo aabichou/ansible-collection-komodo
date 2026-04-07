@@ -24,7 +24,7 @@ komodo_db_username: komodo
 # ---- Core settings ---------------------------------------------------------
 # Public URL used for OAuth callbacks and webhook URL hints.
 # Override per-host when behind a reverse proxy with a proper domain.
-komodo_host: "http://{{ ansible_default_ipv4.address }}:{{ komodo_core_port }}"
+komodo_core_public_url: "http://{{ ansible_default_ipv4.address }}:{{ komodo_core_port }}"
 komodo_title: Komodo
 komodo_timezone: Etc/UTC
 

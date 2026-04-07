@@ -1,4 +1,25 @@
 ---
+- name: Ensure Periphery group exists
+  ansible.builtin.group:
+    name: "{{ periphery_group }}"
+    system: true
+  when:
+    - periphery_manage_user | default(true)
+    - periphery_user != 'root'
+
+- name: Create Periphery service user
+  ansible.builtin.user:
+    name: "{{ periphery_user }}"
+    group: "{{ periphery_group }}"
+    groups: docker
+    append: true
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+  when:
+    - periphery_manage_user | default(true)
+    - periphery_user != 'root'
+
 - name: Create Periphery config directory
   ansible.builtin.file:
     path: "{{ periphery_config_dir }}"
