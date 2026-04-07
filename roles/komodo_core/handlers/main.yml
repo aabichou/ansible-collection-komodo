@@ -1,0 +1,9 @@
+---
+- name: Restart Komodo Core
+  community.docker.docker_compose_v2:
+    project_src: "{{ komodo_core_dir }}"
+    files:
+      - compose.yml
+    env_files:
+      - "{{ komodo_core_dir }}/compose.env"
+    state: restarted

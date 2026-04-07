@@ -1,0 +1,80 @@
+---
+# ---------------------------------------------------------------------------
+# Komodo Periphery — role defaults
+# All values can be overridden in group_vars/komodo_periphery.yml or host_vars/.
+# ---------------------------------------------------------------------------
+
+# ---- Binary ----------------------------------------------------------------
+komodo_version: "2.1.1"     # inherited from group_vars/all.yml normally
+
+# Map ansible_architecture → release asset suffix
+_periphery_arch_map:
+  x86_64: x86_64
+  aarch64: aarch64
+
+periphery_binary_url: >-
+  https://github.com/moghtech/komodo/releases/download/v{{ komodo_version }}/periphery-{{ _periphery_arch_map[ansible_architecture] }}
+
+periphery_binary_path: /usr/local/bin/periphery
+
+# ---- Runtime user ----------------------------------------------------------
+# Periphery runs as root by default (same as the official install script)
+# to allow full Docker and system access. Set to a less-privileged user
+# and ensure it is in the `docker` group if you prefer.
+periphery_user: root
+periphery_group: root
+
+# ---- Directories -----------------------------------------------------------
+periphery_root_directory: /etc/komodo
+periphery_config_dir: /etc/komodo
+periphery_config_path: /etc/komodo/periphery.config.toml
+
+# ---- Outbound connection (v2) -----------------------------------------------
+# Periphery initiates the connection to Core (outbound mode).
+# Core address must be reachable from the Periphery host.
+# Use ws:// for plain or wss:// for TLS. Port is Core's exposed port.
+# Examples:
+#   Single-node (Periphery on same host as Core): "ws://localhost:9120"
+#   Multi-node (private network):                 "ws://10.0.0.4:9120"
+#   Via Traefik/TLS:                              "wss://komodo.example.com"
+periphery_core_address: "ws://localhost:{{ komodo_core_port | default(9120) }}"
+
+# The name this Periphery will register/connect as in Komodo.
+# Must match an existing Server name, or Periphery will create one using
+# the onboarding key below.
+periphery_connect_as: "{{ inventory_hostname }}"
+
+# Onboarding key private key — allows Periphery to self-register as a new Server.
+# Set by periphery.yml pre-task from .komodo_onboarding_keys.json (written by init.yml).
+# Leave empty if connecting as an already-registered Server.
+periphery_onboarding_key: ""
+
+# ---- Feature flags ---------------------------------------------------------
+periphery_disable_terminals: false
+periphery_disable_container_terminals: false
+periphery_legacy_compose_cli: false
+
+# ---- Disk reporting --------------------------------------------------------
+# Comma-separated list. Whitelist /etc/hostname for accurate disk size.
+periphery_include_disk_mounts:
+  - /etc/hostname
+periphery_exclude_disk_mounts: []
+
+# ---- Poll intervals --------------------------------------------------------
+# Options: https://docs.rs/komodo_client/latest/komodo_client/entities/enum.Timelength.html
+periphery_stats_polling_rate: "5-sec"
+periphery_container_stats_polling_rate: "30-sec"
+
+# ---- Logging ---------------------------------------------------------------
+periphery_logging_level: info          # off, error, warn, info, debug, trace
+periphery_logging_stdio: standard      # standard, json, none
+periphery_logging_pretty: false
+periphery_pretty_startup_config: false
+
+# ---- Secrets -----------------------------------------------------------
+# Key/value pairs exposed to stacks managed by this Periphery agent.
+# Example:
+#   periphery_secrets:
+#     MY_SECRET: "value"
+#     ANOTHER: "other"
+periphery_secrets: {}

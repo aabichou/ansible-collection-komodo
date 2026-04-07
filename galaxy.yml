@@ -1,0 +1,33 @@
+---
+namespace: adem_abichou
+name: komodo
+version: 1.0.0
+readme: README.md
+
+description: >-
+  Ansible Collection to deploy Komodo — the open-source server management
+  platform — on any Linux server. Includes roles for Komodo Core (Docker
+  Compose stack) and Komodo Periphery (systemd binary agent).
+
+license:
+  - MIT
+license_file: LICENSE
+
+authors:
+  - Adem Abichou
+
+tags:
+  - komodo
+  - docker
+  - compose
+  - monitoring
+  - infrastructure
+  - management
+
+dependencies:
+  community.docker: ">=3.0.0"
+
+repository: https://github.com/aabichou/ansible-collection-komodo
+documentation: https://github.com/aabichou/ansible-collection-komodo
+homepage: https://komo.do
+issues: https://github.com/aabichou/ansible-collection-komodo/issues

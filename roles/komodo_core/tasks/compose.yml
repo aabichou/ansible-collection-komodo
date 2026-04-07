@@ -1,0 +1,40 @@
+---
+- name: Template Docker Compose file
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ komodo_core_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart Komodo Core
+
+- name: Template compose.env file
+  ansible.builtin.template:
+    src: compose.env.j2
+    dest: "{{ komodo_core_dir }}/compose.env"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart Komodo Core
+
+- name: Pull Komodo Core images
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ komodo_core_dir }}"
+    files:
+      - compose.yml
+
+- name: Deploy Komodo Core stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ komodo_core_dir }}"
+    files:
+      - compose.yml
+    env_files:
+      - "{{ komodo_core_dir }}/compose.env"
+    state: present
+    remove_orphans: true
+  register: _compose_result
+
+- name: Display compose status
+  ansible.builtin.debug:
+    var: _compose_result
+  when: _compose_result.changed

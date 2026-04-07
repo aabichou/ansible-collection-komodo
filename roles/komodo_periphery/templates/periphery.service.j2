@@ -1,0 +1,28 @@
+# Managed by Ansible — do not edit manually.
+# Source: roles/komodo_periphery/templates/periphery.service.j2
+
+[Unit]
+Description=Komodo Periphery Agent v{{ komodo_version }}
+Documentation=https://komo.do/docs
+After=network-online.target docker.service
+Wants=network-online.target
+# Soft dependency on Docker — periphery still starts if Docker is absent.
+
+[Service]
+Type=simple
+User={{ periphery_user }}
+Group={{ periphery_group }}
+ExecStart={{ periphery_binary_path }} --config-path {{ periphery_config_path }}
+Restart=on-failure
+RestartSec=5s
+# Give periphery time to gracefully shut down before killing it.
+TimeoutStopSec=30s
+
+# Harden the service slightly.
+PrivateTmp=true
+NoNewPrivileges=true
+# Root runs as root so Docker socket access works out of the box.
+# If running as an unprivileged user, add that user to the docker group.
+
+[Install]
+WantedBy=multi-user.target

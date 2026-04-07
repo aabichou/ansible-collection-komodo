@@ -1,0 +1,16 @@
+---
+- name: Create Komodo Core directory
+  ansible.builtin.file:
+    path: "{{ komodo_core_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Create backups directory
+  ansible.builtin.file:
+    path: "{{ komodo_core_backups_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"

@@ -1,0 +1,113 @@
+---
+# ---------------------------------------------------------------------------
+# Komodo Core — role defaults
+# All values can be overridden in group_vars/komodo_core.yml or host_vars/.
+# ---------------------------------------------------------------------------
+
+# ---- Image -----------------------------------------------------------------
+komodo_version: "2.1.1" # inherited from group_vars/all.yml normally
+
+# ---- Directories -----------------------------------------------------------
+komodo_core_dir: /opt/komodo # compose project root on the host
+komodo_core_backups_path: /etc/komodo/backups
+
+# ---- Ports -----------------------------------------------------------------
+komodo_core_port: 9120 # host-mapped port for the core container
+
+# ---- Database --------------------------------------------------------------
+# Options: "ferretdb" (no AVX required, recommended) | "mongo" (requires AVX)
+komodo_db_type: ferretdb
+komodo_db_name: komodo
+komodo_db_username: komodo
+# komodo_db_password — REQUIRED, no default. Set in inventory or vault.
+
+# ---- Core settings ---------------------------------------------------------
+# Public URL used for OAuth callbacks and webhook URL hints.
+# Override per-host when behind a reverse proxy with a proper domain.
+komodo_host: "http://{{ ansible_default_ipv4.address }}:{{ komodo_core_port }}"
+komodo_title: Komodo
+komodo_timezone: Etc/UTC
+
+# Auto-register first periphery on first Core boot.
+# Left empty so the init.yml playbook is the single source of truth for
+# server registration. Set this only if you want a quick single-node shortcut
+# and are NOT running the init playbook.
+#
+# TIP: If you set komodo_first_server_name WITHOUT komodo_first_server_address,
+# Core assumes outbound Periphery mode (Periphery initiates the connection) —
+# this is the recommended single-node pattern.
+komodo_first_server_address: ""
+komodo_first_server_name: Local
+
+# ---- Auth ------------------------------------------------------------------
+# v2: Core↔Periphery auth uses Noise protocol PKI (keys auto-generated at /config/keys).
+# KOMODO_PERIPHERY_PUBLIC_KEY — path to Periphery's public key Core should trust.
+# Leave empty to accept any Periphery (rely on network-level security instead).
+# Format: "file:/config/keys/periphery.pub" or inline base64 DER.
+komodo_periphery_public_key: ""
+
+komodo_local_auth: true
+komodo_init_admin_username: admin
+# komodo_init_admin_password — REQUIRED, no default. Set in inventory or vault.
+komodo_disable_user_registration: false
+komodo_enable_new_users: false
+komodo_disable_non_admin_create: false
+komodo_transparent_mode: false
+komodo_disable_confirm_dialog: false
+komodo_disable_init_resources: false
+
+# ---- OIDC (optional) -------------------------------------------------------
+komodo_oidc_enabled: false
+komodo_oidc_provider: ""
+komodo_oidc_redirect_host: ""
+komodo_oidc_client_id: ""
+komodo_oidc_client_secret: ""
+komodo_oidc_use_full_email: false
+
+# ---- GitHub OAuth (optional) -----------------------------------------------
+komodo_github_oauth_enabled: false
+komodo_github_oauth_id: ""
+komodo_github_oauth_secret: ""
+
+# ---- Google OAuth (optional) -----------------------------------------------
+komodo_google_oauth_enabled: false
+komodo_google_oauth_id: ""
+komodo_google_oauth_secret: ""
+
+# ---- Poll intervals --------------------------------------------------------
+# Options: 1-sec, 5-sec, 15-sec, 1-min, 5-min, 15-min
+komodo_monitoring_interval: "15-sec"
+# Options: 15-min, 1-hr, 2-hr, 6-hr, 12-hr, 1-day
+komodo_resource_poll_interval: "1-hr"
+
+# ---- JWT -------------------------------------------------------------------
+# Options: 1-hr, 12-hr, 1-day, 3-day, 1-wk, 2-wk
+komodo_jwt_ttl: "1-day"
+
+# ---- Pruning ---------------------------------------------------------------
+komodo_keep_stats_for_days: 14
+komodo_keep_alerts_for_days: 14
+
+# ---- Logging ---------------------------------------------------------------
+# Options: off, error, warn, info, debug, trace
+komodo_logging_level: info
+komodo_logging_pretty: false
+komodo_pretty_startup_config: false
+
+# ---- extra_hosts in compose ------------------------------------------------
+# Set to true when periphery runs as systemd on the SAME host as core-docker
+# so "host.docker.internal" resolves correctly.
+komodo_core_add_host_gateway: false
+
+# ---- Containerised Periphery (advanced) ------------------------------------
+# Set to true ONLY when running Periphery as a container on the same host as
+# Core. In that mode, Core's compose.env will include PERIPHERY_* env vars.
+# Leave false (default) when Periphery is deployed as a systemd binary.
+komodo_core_containerized_periphery: false
+
+# ---- Traefik integration ---------------------------------------------------
+# Mirrored here so the core compose template can reference them without
+# depending on the traefik role's scope. Keep in sync with roles/traefik/defaults/main.yml.
+traefik_enabled: false
+traefik_external_tld: ""
+traefik_core_subdomain: "komodo"

@@ -1,0 +1,36 @@
+---
+- name: Assert architecture is supported
+  ansible.builtin.assert:
+    that: ansible_architecture in _periphery_arch_map
+    fail_msg: >
+      Unsupported architecture: {{ ansible_architecture }}.
+      Supported: {{ _periphery_arch_map.keys() | list | join(', ') }}.
+
+- name: Check currently installed periphery version
+  ansible.builtin.command: "{{ periphery_binary_path }} --version"
+  register: _periphery_current_version
+  changed_when: false
+  failed_when: false
+
+- name: Set fact — whether upgrade/install is needed
+  ansible.builtin.set_fact:
+    _periphery_needs_install: >-
+      {{ _periphery_current_version.rc != 0 or
+         komodo_version not in _periphery_current_version.stdout }}
+
+- name: Download Periphery binary
+  ansible.builtin.get_url:
+    url: "{{ periphery_binary_url }}"
+    dest: "{{ periphery_binary_path }}"
+    mode: "0755"
+    owner: root
+    group: root
+    force: true
+  when: _periphery_needs_install
+  notify: Restart periphery service
+
+- name: Verify periphery binary is executable
+  ansible.builtin.command: "{{ periphery_binary_path }} --version"
+  register: _periphery_version_check
+  changed_when: false
+  failed_when: _periphery_version_check.rc != 0

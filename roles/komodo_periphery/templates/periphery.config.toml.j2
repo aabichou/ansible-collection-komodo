@@ -1,0 +1,66 @@
+# Managed by Ansible — do not edit manually.
+# Source: roles/komodo_periphery/templates/periphery.config.toml.j2
+# Full reference: https://github.com/moghtech/komodo/blob/main/config/periphery.config.toml
+
+# ── Directories ───────────────────────────────────────────────────────────────
+root_directory = "{{ periphery_root_directory }}"
+
+# ── Feature flags ─────────────────────────────────────────────────────────────
+disable_terminals          = {{ periphery_disable_terminals | lower }}
+disable_container_terminals = {{ periphery_disable_container_terminals | lower }}
+legacy_compose_cli         = {{ periphery_legacy_compose_cli | lower }}
+
+# ── Stats polling ─────────────────────────────────────────────────────────────
+stats_polling_rate           = "{{ periphery_stats_polling_rate }}"
+container_stats_polling_rate = "{{ periphery_container_stats_polling_rate }}"
+
+# ── Disk reporting ─────────────────────────────────────────────────────────────
+{% if periphery_include_disk_mounts %}
+include_disk_mounts = {{ periphery_include_disk_mounts | to_json }}
+{% else %}
+include_disk_mounts = []
+{% endif %}
+{% if periphery_exclude_disk_mounts %}
+exclude_disk_mounts = {{ periphery_exclude_disk_mounts | to_json }}
+{% else %}
+exclude_disk_mounts = []
+{% endif %}
+
+# ── Outbound connection ────────────────────────────────────────────────────────
+# Periphery initiates the connection to Core (no inbound port required).
+core_address = "{{ periphery_core_address }}"
+connect_as   = "{{ periphery_connect_as }}"
+{% if periphery_onboarding_key %}
+onboarding_key = "{{ periphery_onboarding_key }}"
+{% endif %}
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+[logging]
+level                        = "{{ periphery_logging_level }}"
+stdio                        = "{{ periphery_logging_stdio }}"
+pretty                       = {{ periphery_logging_pretty | lower }}
+opentelemetry_service_name   = "Periphery"
+
+pretty_startup_config = {{ periphery_pretty_startup_config | lower }}
+
+# ── Git providers (optional) ──────────────────────────────────────────────────
+# [[git_provider]]
+# domain = "github.com"
+# accounts = [
+#   { username = "your-user", token = "ghp_..." },
+# ]
+
+# ── Registry providers (optional) ─────────────────────────────────────────────
+# [[docker_registry]]
+# domain = "docker.io"
+# accounts = [
+#   { username = "your-user", token = "dckr_pat_..." },
+# ]
+
+# ── Secrets (optional) ────────────────────────────────────────────────────────
+{% if periphery_secrets %}
+[secrets]
+{% for key, value in periphery_secrets.items() %}
+{{ key }} = "{{ value }}"
+{% endfor %}
+{% endif %}

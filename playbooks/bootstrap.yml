@@ -1,0 +1,229 @@
+---
+# Bootstrap Komodo via its REST API.
+#
+# What this does:
+#   1. Waits for the Core API to become ready
+#   2. Authenticates as admin (local password login)
+#   3. Creates an API key named "ansible-automation" (idempotent)
+#      → saved to komodo_api_creds_file (default: .komodo_api_creds.json)
+#   4. Creates a per-Periphery onboarding key for every host in komodo_periphery
+#      → saved to komodo_onboarding_keys_file (default: .komodo_onboarding_keys.json)
+#      → periphery.yml reads this file to inject the key into each agent
+#
+# Both output files are created with mode 0600 and git-ignored by default.
+# Running this playbook again is idempotent — existing credentials are reused.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/bootstrap.yml
+#
+# Override output paths:
+#   -e komodo_api_creds_file=/path/to/creds.json
+#   -e komodo_onboarding_keys_file=/path/to/keys.json
+
+# ── Pre-req: gather facts if running standalone ───────────────────────────────
+- name: Gather facts on all hosts
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 120
+        sleep: 3
+    - name: Gather facts
+      ansible.builtin.setup:
+
+# ── Main: bootstrap via API ───────────────────────────────────────────────────
+- name: Bootstrap Komodo via API
+  hosts: komodo_core
+  gather_facts: false
+  run_once: true
+  vars:
+    _api_url:              "{{ komodo_host }}"
+    _key_name:             "ansible-automation"
+    _creds_file:           "{{ komodo_api_creds_file | default(playbook_dir + '/.komodo_api_creds.json') }}"
+    _onboarding_keys_file: "{{ komodo_onboarding_keys_file | default(playbook_dir + '/.komodo_onboarding_keys.json') }}"
+    _admin_username:       "{{ komodo_init_admin_username | default('admin') }}"
+    _admin_password:       "{{ komodo_init_admin_password }}"
+
+  tasks:
+
+    # ── 1. Wait for Core API ──────────────────────────────────────────────────
+    - name: Wait for Komodo Core API to become reachable
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/auth/login"
+        method: POST
+        body_format: json
+        body: { type: GetLoginOptions, params: {} }
+        status_code: [200]
+        timeout: 5
+      register: _health_check
+      until: _health_check.status == 200
+      retries: 40
+      delay: 5
+      delegate_to: localhost
+
+    # ── 2. Authenticate ───────────────────────────────────────────────────────
+    - name: Login as admin
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/auth/login"
+        method: POST
+        body_format: json
+        body:
+          type: LoginLocalUser
+          params:
+            username: "{{ _admin_username }}"
+            password: "{{ _admin_password }}"
+        status_code: 200
+      register: _login
+      delegate_to: localhost
+      no_log: true
+
+    - name: Store JWT
+      ansible.builtin.set_fact:
+        _jwt: "{{ _login.json.data.jwt }}"
+      no_log: true
+
+    # ── 3. API key management (idempotent) ────────────────────────────────────
+    - name: Check for local API credentials file
+      ansible.builtin.stat:
+        path: "{{ _creds_file }}"
+      register: _creds_stat
+      delegate_to: localhost
+
+    - name: Load credentials from file
+      ansible.builtin.slurp:
+        src: "{{ _creds_file }}"
+      register: _creds_raw
+      when: _creds_stat.stat.exists
+      delegate_to: localhost
+
+    - name: Set API credentials from file
+      ansible.builtin.set_fact:
+        _api_creds: "{{ _creds_raw.content | b64decode | from_json }}"
+      when: _creds_stat.stat.exists
+
+    - name: List existing API keys
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/read"
+        method: POST
+        headers:
+          Authorization: "{{ _jwt }}"
+        body_format: json
+        body: { type: ListApiKeys, params: {} }
+        status_code: 200
+      register: _existing_keys
+      when: not _creds_stat.stat.exists
+      delegate_to: localhost
+
+    - name: Delete stale API key with same name (if any)
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/auth/manage"
+        method: POST
+        headers:
+          Authorization: "{{ _jwt }}"
+        body_format: json
+        body:
+          type: DeleteApiKey
+          params:
+            key: "{{ item.key }}"
+        status_code: 200
+      loop: "{{ _existing_keys.json | selectattr('name', 'equalto', _key_name) | list }}"
+      when: not _creds_stat.stat.exists
+      delegate_to: localhost
+
+    - name: Create API key
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/auth/manage"
+        method: POST
+        headers:
+          Authorization: "{{ _jwt }}"
+        body_format: json
+        body:
+          type: CreateApiKey
+          params:
+            name: "{{ _key_name }}"
+        status_code: 200
+      register: _new_key
+      when: not _creds_stat.stat.exists
+      delegate_to: localhost
+      no_log: true
+
+    - name: Persist API credentials to local file (mode 0600)
+      ansible.builtin.copy:
+        content: "{{ _new_key.json | to_nice_json }}\n"
+        dest: "{{ _creds_file }}"
+        mode: "0600"
+      when: not _creds_stat.stat.exists
+      delegate_to: localhost
+
+    - name: Set API credentials from new key
+      ansible.builtin.set_fact:
+        _api_creds: "{{ _new_key.json }}"
+      when: not _creds_stat.stat.exists
+
+    # ── 4. Onboarding keys (idempotent) ──────────────────────────────────────
+    - name: Check for local onboarding keys file
+      ansible.builtin.stat:
+        path: "{{ _onboarding_keys_file }}"
+      register: _ok_stat
+      delegate_to: localhost
+
+    - name: Load existing onboarding keys from file
+      ansible.builtin.slurp:
+        src: "{{ _onboarding_keys_file }}"
+      register: _ok_raw
+      when: _ok_stat.stat.exists
+      delegate_to: localhost
+
+    - name: Set onboarding keys dict from file
+      ansible.builtin.set_fact:
+        _onboarding_keys: "{{ _ok_raw.content | b64decode | from_json }}"
+      when: _ok_stat.stat.exists
+
+    - name: Initialize empty onboarding keys dict
+      ansible.builtin.set_fact:
+        _onboarding_keys: {}
+      when: not _ok_stat.stat.exists
+
+    - name: Create onboarding key for periphery hosts not yet saved locally
+      ansible.builtin.uri:
+        url: "{{ _api_url }}/write"
+        method: POST
+        headers:
+          X-Api-Key: "{{ _api_creds.key }}"
+          X-Api-Secret: "{{ _api_creds.secret }}"
+        body_format: json
+        body:
+          type: CreateOnboardingKey
+          params:
+            name: "periphery-{{ item }}"
+            expires: 0
+        status_code: 200
+      loop: "{{ groups['komodo_periphery'] | default([]) }}"
+      when: item not in _onboarding_keys
+      register: _new_onboarding_keys
+      delegate_to: localhost
+      no_log: true
+
+    - name: Add newly created keys to dict
+      ansible.builtin.set_fact:
+        _onboarding_keys: "{{ _onboarding_keys | combine({item.item: item.json.private_key}) }}"
+      loop: "{{ _new_onboarding_keys.results | default([]) }}"
+      when: not item.skipped | default(false)
+      no_log: true
+
+    - name: Save onboarding keys to local file (mode 0600)
+      ansible.builtin.copy:
+        content: "{{ _onboarding_keys | to_nice_json }}\n"
+        dest: "{{ _onboarding_keys_file }}"
+        mode: "0600"
+      delegate_to: localhost
+
+    - name: Report onboarding key status
+      ansible.builtin.debug:
+        msg: >-
+          Onboarding key created for '{{ item.item }}'.
+          Periphery will self-register as
+          '{{ hostvars[item.item]['periphery_connect_as'] | default(item.item) }}'.
+      loop: "{{ _new_onboarding_keys.results | default([]) }}"
+      when: not item.skipped | default(false)

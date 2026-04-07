@@ -1,0 +1,21 @@
+---
+# Role metadata for Komodo Periphery (part of adem_abichou.komodo collection).
+# Author and namespace are declared in the collection's galaxy.yml.
+
+galaxy_info:
+  role_name: komodo_periphery
+  author: adem_abichou
+  description: >-
+    Install and configure Komodo Periphery as a systemd service from the
+    official GitHub release binary. Supports x86_64 and aarch64.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [focal, jammy, noble]
+    - name: Debian
+      versions: [bullseye, bookworm]
+    - name: EL
+      versions: ["8", "9"]
+
+dependencies: []

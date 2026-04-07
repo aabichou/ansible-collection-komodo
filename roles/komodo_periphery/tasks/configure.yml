@@ -1,0 +1,30 @@
+---
+- name: Create Periphery config directory
+  ansible.builtin.file:
+    path: "{{ periphery_config_dir }}"
+    state: directory
+    owner: "{{ periphery_user }}"
+    group: "{{ periphery_group }}"
+    mode: "0750"
+
+- name: Create Periphery sub-directories
+  ansible.builtin.file:
+    path: "{{ periphery_root_directory }}/{{ item }}"
+    state: directory
+    owner: "{{ periphery_user }}"
+    group: "{{ periphery_group }}"
+    mode: "0750"
+  loop:
+    - repos
+    - stacks
+    - builds
+    - ssl
+
+- name: Template Periphery configuration file
+  ansible.builtin.template:
+    src: periphery.config.toml.j2
+    dest: "{{ periphery_config_path }}"
+    owner: "{{ periphery_user }}"
+    group: "{{ periphery_group }}"
+    mode: "0640"
+  notify: Restart periphery service

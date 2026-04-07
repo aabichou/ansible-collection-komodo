@@ -1,0 +1,33 @@
+---
+# Deploy Komodo Core only.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/core.yml
+#   ansible-playbook -i inventory/hosts.yml playbooks/core.yml -e komodo_version=2.1.1
+#
+# Required secrets (set in inventory or vault — NO defaults):
+#   komodo_jwt_secret, komodo_webhook_secret,
+#   komodo_db_password, komodo_init_admin_password
+
+- name: Deploy Komodo Core
+  hosts: komodo_core
+  gather_facts: false
+  become: true
+  pre_tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 5
+
+    - name: Wait for cloud-init (if applicable)
+      ansible.builtin.raw: >
+        cloud-init status --wait 2>/dev/null ||
+        while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 3; done
+      changed_when: false
+      failed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+  roles:
+    - role: adem_abichou.komodo.komodo_core

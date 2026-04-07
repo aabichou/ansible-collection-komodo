@@ -1,0 +1,9 @@
+---
+- name: Install Periphery binary
+  ansible.builtin.import_tasks: install.yml
+
+- name: Configure Periphery
+  ansible.builtin.import_tasks: configure.yml
+
+- name: Manage Periphery systemd service
+  ansible.builtin.import_tasks: service.yml

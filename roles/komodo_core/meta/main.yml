@@ -1,0 +1,25 @@
+---
+# Role metadata for Komodo Core (part of adem_abichou.komodo collection).
+# Author and namespace are declared in the collection's galaxy.yml.
+#
+# community.docker collection is declared as a collection dependency in galaxy.yml.
+# Docker must be installed on the target host before running this role
+# (use geerlingguy.docker or any equivalent).
+
+galaxy_info:
+  role_name: komodo_core
+  author: adem_abichou
+  description: >-
+    Deploy Komodo Core as a Docker Compose stack with FerretDB or MongoDB
+    backend and optional Traefik integration.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions: [focal, jammy, noble]
+    - name: Debian
+      versions: [bullseye, bookworm]
+    - name: EL
+      versions: ["8", "9"]
+
+dependencies: []

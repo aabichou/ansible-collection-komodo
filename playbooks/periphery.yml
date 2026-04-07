@@ -1,0 +1,66 @@
+---
+# Deploy Komodo Periphery agents.
+#
+# Onboarding key resolution order (first match wins):
+#   1. periphery_onboarding_key set directly per-host in inventory / host_vars
+#   2. komodo_onboarding_keys_file on the Ansible controller (written by bootstrap.yml)
+#   3. Neither — Periphery connects as an already-registered Server (no self-registration)
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/periphery.yml
+#   ansible-playbook -i inventory/hosts.yml playbooks/periphery.yml --limit worker-1
+#   ansible-playbook -i inventory/hosts.yml playbooks/periphery.yml -e komodo_version=2.1.1
+#
+# Override the keys file location:
+#   -e komodo_onboarding_keys_file=/path/to/keys.json
+
+- name: Deploy Komodo Periphery
+  hosts: komodo_periphery
+  gather_facts: false
+  become: true
+  pre_tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 5
+
+    - name: Wait for cloud-init (if applicable)
+      ansible.builtin.raw: >
+        cloud-init status --wait 2>/dev/null ||
+        while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 3; done
+      changed_when: false
+      failed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Check if onboarding keys file exists
+      ansible.builtin.stat:
+        path: "{{ komodo_onboarding_keys_file | default(playbook_dir + '/.komodo_onboarding_keys.json') }}"
+      register: _ok_stat
+      delegate_to: localhost
+      become: false
+      when: not (periphery_onboarding_key | default(''))
+
+    - name: Load onboarding keys from local file
+      ansible.builtin.slurp:
+        src: "{{ komodo_onboarding_keys_file | default(playbook_dir + '/.komodo_onboarding_keys.json') }}"
+      register: _ok_file
+      delegate_to: localhost
+      become: false
+      when:
+        - not (periphery_onboarding_key | default(''))
+        - _ok_stat.stat.exists | default(false)
+
+    - name: Set periphery_onboarding_key from saved file
+      ansible.builtin.set_fact:
+        periphery_onboarding_key: >-
+          {{ (_ok_file.content | b64decode | from_json).get(inventory_hostname, '') }}
+      become: false
+      when:
+        - not (periphery_onboarding_key | default(''))
+        - _ok_stat.stat.exists | default(false)
+        - _ok_file is not skipped
+
+  roles:
+    - role: adem_abichou.komodo.komodo_periphery

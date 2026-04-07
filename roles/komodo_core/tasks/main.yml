@@ -1,0 +1,22 @@
+---
+- name: Assert required secrets are provided
+  ansible.builtin.assert:
+    that:
+      - komodo_jwt_secret is defined
+      - komodo_jwt_secret | length > 0
+      - komodo_webhook_secret is defined
+      - komodo_webhook_secret | length > 0
+      - komodo_db_password is defined
+      - komodo_db_password | length > 0
+      - komodo_init_admin_password is defined
+      - komodo_init_admin_password | length > 0
+    fail_msg: >-
+      komodo_core: the following variables are required and have no default —
+      komodo_jwt_secret, komodo_webhook_secret, komodo_db_password,
+      komodo_init_admin_password. Set them in your inventory or vault file.
+
+- name: Include directory setup tasks
+  ansible.builtin.import_tasks: directories.yml
+
+- name: Include Docker Compose setup tasks
+  ansible.builtin.import_tasks: compose.yml

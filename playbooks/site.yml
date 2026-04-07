@@ -1,0 +1,67 @@
+---
+# Full deployment example.
+#
+# Phases:
+#   1. Install Docker on all nodes
+#   2. Deploy Komodo Core
+#   3. Bootstrap the API (creates automation key + per-Periphery onboarding keys)
+#   4. Deploy Komodo Periphery
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml --tags core
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml --tags periphery
+#   ansible-playbook -i inventory/hosts.yml playbooks/site.yml --skip-tags bootstrap
+#
+# Required secrets (set in inventory or vault — NO defaults):
+#   komodo_jwt_secret, komodo_webhook_secret,
+#   komodo_db_password, komodo_init_admin_password
+
+# ── Phase 1: Wait for SSH + cloud-init, gather facts ─────────────────────────
+- name: Wait for hosts and gather facts
+  hosts: all
+  gather_facts: false
+  tags: [always]
+  tasks:
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 5
+
+    - name: Wait for cloud-init to finish (if applicable)
+      ansible.builtin.raw: >
+        cloud-init status --wait 2>/dev/null ||
+        while [ ! -f /var/lib/cloud/instance/boot-finished ]; do sleep 3; done
+      changed_when: false
+      failed_when: false
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+# ── Phase 2: Install Docker on all nodes ─────────────────────────────────────
+- name: Install Docker
+  hosts: all
+  gather_facts: false
+  become: true
+  tags: [docker]
+  roles:
+    - role: geerlingguy.docker
+
+# ── Phase 3: Deploy Komodo Core ───────────────────────────────────────────────
+- name: Deploy Komodo Core
+  hosts: komodo_core
+  gather_facts: false
+  become: true
+  tags: [core]
+  roles:
+    - role: adem_abichou.komodo.komodo_core
+
+# ── Phase 4: Bootstrap API ────────────────────────────────────────────────────
+- name: Bootstrap Komodo API
+  ansible.builtin.import_playbook: bootstrap.yml
+  tags: [bootstrap]
+
+# ── Phase 5: Deploy Komodo Periphery ─────────────────────────────────────────
+- name: Deploy Komodo Periphery
+  ansible.builtin.import_playbook: periphery.yml
+  tags: [periphery]

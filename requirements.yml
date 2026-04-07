@@ -1,0 +1,12 @@
+---
+# Install dependencies for the example playbooks (not required if you only
+# use the roles directly).
+roles:
+  - name: geerlingguy.docker
+    version: "8.0.0"
+
+collections:
+  - name: community.docker
+    version: ">=3.0.0"
+  - name: community.general
+    version: ">=7.0.0"

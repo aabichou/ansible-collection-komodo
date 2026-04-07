@@ -1,0 +1,24 @@
+# Ansible controller-side credential output from bootstrap.yml
+# These files are created at playbook_dir level (inside playbooks/) by default.
+playbooks/.komodo_api_creds.json
+playbooks/.komodo_onboarding_keys.json
+
+# Alternate paths
+.komodo_api_creds.json
+.komodo_onboarding_keys.json
+
+# Ansible retry files
+*.retry
+
+# Vault password file (if used)
+.vault_pass
+.vault_password
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor
+.DS_Store
+.vscode/
+*.swp

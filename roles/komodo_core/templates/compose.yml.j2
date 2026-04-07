@@ -1,0 +1,129 @@
+# Managed by Ansible — do not edit manually.
+# Source: roles/komodo_core/templates/compose.yml.j2
+---
+services:
+
+  # ──────────────────────────────────────────────
+  # Komodo Core
+  # ──────────────────────────────────────────────
+  core:
+    image: "ghcr.io/moghtech/komodo-core:{{ komodo_version }}"
+    init: true
+    labels:
+      komodo.skip:   # prevent Komodo from stopping itself via StopAllContainers
+{% if traefik_enabled | default(false) %}
+      traefik.enable: "true"
+      traefik.http.routers.komodo-core.rule: "Host(`{{ traefik_core_subdomain }}.{{ traefik_external_tld }}`)"
+      traefik.http.services.komodo-core.loadbalancer.server.port: "9120"
+      traefik.http.routers.komodo-core.entrypoints: "websecure"
+{% endif %}
+    restart: unless-stopped
+    depends_on:
+{% if komodo_db_type == 'ferretdb' %}
+      - ferretdb
+{% elif komodo_db_type == 'mongo' %}
+      - mongo
+{% endif %}
+    ports:
+      - "{{ komodo_core_port }}:9120"
+    env_file:
+      - compose.env
+    environment:
+{% if komodo_db_type == 'ferretdb' %}
+      KOMODO_DATABASE_ADDRESS: "ferretdb:27017"
+{% elif komodo_db_type == 'mongo' %}
+      KOMODO_DATABASE_ADDRESS: "mongo:27017"
+{% endif %}
+      KOMODO_DATABASE_USERNAME: "${KOMODO_DATABASE_USERNAME}"
+      KOMODO_DATABASE_PASSWORD: "${KOMODO_DATABASE_PASSWORD}"
+    volumes:
+      - keys:/config/keys
+      - "{{ komodo_core_backups_path }}:/backups"
+      - repo-cache:/repo-cache
+{% if komodo_core_add_host_gateway %}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+{% endif %}
+
+{% if komodo_db_type == 'ferretdb' %}
+  # ──────────────────────────────────────────────
+  # PostgreSQL (FerretDB backend)
+  # ──────────────────────────────────────────────
+  postgres:
+    # Pin to a specific version — FerretDB updates can be breaking.
+    image: "ghcr.io/ferretdb/postgres-documentdb:latest"
+    labels:
+      komodo.skip:
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: "${KOMODO_DATABASE_USERNAME}"
+      POSTGRES_PASSWORD: "${KOMODO_DATABASE_PASSWORD}"
+      POSTGRES_DB: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KOMODO_DATABASE_USERNAME} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # ──────────────────────────────────────────────
+  # FerretDB (MongoDB-compatible API)
+  # ──────────────────────────────────────────────
+  ferretdb:
+    # Pin to a specific version — FerretDB updates can be breaking.
+    image: "ghcr.io/ferretdb/ferretdb:latest"
+    labels:
+      komodo.skip:
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ferretdb-state:/state
+    environment:
+      FERRETDB_POSTGRESQL_URL: "postgres://${KOMODO_DATABASE_USERNAME}:${KOMODO_DATABASE_PASSWORD}@postgres:5432/postgres"
+
+{% elif komodo_db_type == 'mongo' %}
+  # ──────────────────────────────────────────────
+  # MongoDB
+  # Requires AVX CPU support. Use ferretdb if unsure.
+  # ──────────────────────────────────────────────
+  mongo:
+    image: "mongo"
+    labels:
+      komodo.skip:
+    command: --quiet --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${KOMODO_DATABASE_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${KOMODO_DATABASE_PASSWORD}"
+      MONGO_INITDB_DATABASE: "${KOMODO_DATABASE_DB_NAME}"
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+{% endif %}
+
+volumes:
+  keys:
+  repo-cache:
+{% if komodo_db_type == 'ferretdb' %}
+  postgres-data:
+  ferretdb-state:
+{% elif komodo_db_type == 'mongo' %}
+  mongo-data:
+  mongo-config:
+{% endif %}
+{% if traefik_enabled | default(false) %}
+networks:
+  default:
+    name: external
+    external: true
+{% endif %}
