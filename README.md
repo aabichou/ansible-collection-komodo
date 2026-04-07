@@ -29,7 +29,7 @@ Each role has its own `README.md` with the full variable reference and examples:
 ```bash
 ansible-galaxy collection install adem_abichou.komodo
 # or pin a version:
-ansible-galaxy collection install adem_abichou.komodo:==1.0.0
+ansible-galaxy collection install adem_abichou.komodo:==1.1.0
 ```
 
 Install role and collection dependencies (needed for the example playbooks):
@@ -77,6 +77,10 @@ all:
       ...
 
     periphery_core_address: "ws://1.2.3.4:9120"
+
+    # Optional — public URL Core advertises for OAuth / webhooks.
+    # Defaults to http://<host-ip>:9120 when not set.
+    # komodo_core_public_url: "https://komodo.example.com"
 ```
 
 ### Deploy Core only
@@ -87,6 +91,9 @@ all:
   become: true
   roles:
     - role: geerlingguy.docker
+      vars:
+        docker_install_compose_plugin: true
+        docker_users: ["{{ ansible_user }}"]
     - role: adem_abichou.komodo.komodo_core
 ```
 
@@ -97,6 +104,14 @@ ansible-playbook -i inventory/hosts.yml playbooks/site.yml
 ```
 
 See [playbooks/](playbooks/) for ready-to-run example playbooks.
+
+**Docker phase options** (set as host/group vars or `-e`):
+
+| Variable | Default | Description |
+|---|---|---|
+| `komodo_manage_docker` | `true` | Set `false` to skip Docker installation entirely |
+| `komodo_docker_hosts` | `all` | Inventory group/host pattern to target for Docker install |
+| `komodo_docker_users` | `[]` | Users to add to the `docker` group |
 
 ---
 
@@ -112,6 +127,22 @@ See [playbooks/](playbooks/) for ready-to-run example playbooks.
 > `bootstrap.yml` must run after `core.yml` and before `periphery.yml` when using
 > automatic server onboarding. It saves credentials to `.komodo_api_creds.json`
 > and onboarding keys to `.komodo_onboarding_keys.json` locally.
+
+---
+
+## Upgrade Notes — v1.1.0
+
+### Breaking changes
+
+- **`komodo_host` renamed to `komodo_core_public_url`** — update any inventory files or `group_vars` that set this variable.
+
+### New features
+
+- `komodo_manage_docker` toggle — set `false` to skip the Docker installation phase when managing Docker externally.
+- `komodo_docker_hosts` — restrict the Docker phase to a specific inventory group instead of `all`.
+- `komodo_docker_users` — list of users to add to the `docker` group (passed to `geerlingguy.docker`).
+- `docker_install_compose_plugin: true` is now explicit in the Docker phase — the Compose plugin is always installed.
+- `periphery_user` defaults to `komodo` (was `root`). The role now creates a dedicated system user in the `docker` group automatically. Set `periphery_manage_user: false` to manage the user yourself, or `periphery_user: root` to restore the old behaviour.
 
 ---
 
