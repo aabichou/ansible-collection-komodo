@@ -27,7 +27,7 @@ tags:
 dependencies:
   community.docker: ">=3.0.0"
 
-repository: https://github.com/aabichou/ansible-collection-komodo
-documentation: https://github.com/aabichou/ansible-collection-komodo
+repository: https://github.com/adamab48/ansible-collection-komodo
+documentation: https://github.com/adamab48/ansible-collection-komodo
 homepage: https://komo.do
-issues: https://github.com/aabichou/ansible-collection-komodo/issues
+issues: https://github.com/adamab48/ansible-collection-komodo/issues
