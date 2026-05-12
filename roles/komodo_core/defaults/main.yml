@@ -94,6 +94,12 @@ komodo_logging_level: info
 komodo_logging_pretty: false
 komodo_pretty_startup_config: false
 
+# ---- Template overrides ----------------------------------------------------
+# Override these to supply your own Jinja2 templates for the compose files.
+# Use an absolute path or a path relative to your playbook's templates/ dir.
+komodo_core_compose_template: compose.yml.j2
+komodo_core_env_template: compose.env.j2
+
 # ---- extra_hosts in compose ------------------------------------------------
 # Set to true when periphery runs as systemd on the SAME host as core-docker
 # so "host.docker.internal" resolves correctly.

@@ -29,7 +29,7 @@ Each role has its own `README.md` with the full variable reference and examples:
 ```bash
 ansible-galaxy collection install adem_abichou.komodo
 # or pin a version:
-ansible-galaxy collection install adem_abichou.komodo:==1.1.0
+ansible-galaxy collection install adem_abichou.komodo:==1.2.0
 ```
 
 Install role and collection dependencies (needed for the example playbooks):
@@ -127,6 +127,14 @@ See [playbooks/](playbooks/) for ready-to-run example playbooks.
 > `bootstrap.yml` must run after `core.yml` and before `periphery.yml` when using
 > automatic server onboarding. It saves credentials to `.komodo_api_creds.json`
 > and onboarding keys to `.komodo_onboarding_keys.json` locally.
+
+---
+
+## Upgrade Notes — v1.2.0
+
+### New features
+
+- **Custom Compose templates** — new variables `komodo_core_compose_template` and `komodo_core_env_template` let you supply your own Jinja2 templates for the Docker Compose file and `.env` file, allowing full customisation of the stack beyond what role variables expose. Defaults remain the built-in templates, so existing deployments are unaffected.
 
 ---
 

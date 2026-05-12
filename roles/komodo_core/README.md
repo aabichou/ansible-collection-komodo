@@ -99,6 +99,13 @@ Optional Traefik reverse-proxy integration (TLS termination, routing by subdomai
 | `komodo_logging_pretty` | `false` | Pretty-print log output |
 | `komodo_pretty_startup_config` | `false` | Log full config on startup |
 
+### Template overrides
+
+| Variable | Default | Description |
+|---|---|---|
+| `komodo_core_compose_template` | `compose.yml.j2` | Jinja2 template for the Docker Compose file. Override with an absolute path or a path relative to your playbook's `templates/` directory |
+| `komodo_core_env_template` | `compose.env.j2` | Jinja2 template for the compose `.env` file. Same path rules as above |
+
 ### Networking
 
 | Variable | Default | Description |
@@ -215,6 +222,26 @@ and let Core auto-register the local Periphery:
 ```
 
 > Traefik must be running and the external Docker network must exist before this play runs.
+
+---
+
+### Custom Compose templates
+
+You can supply your own `compose.yml.j2` and `compose.env.j2` templates to
+customise the Docker Compose stack beyond what the role variables expose:
+
+```yaml
+- hosts: komodo_core
+  become: true
+  vars:
+    komodo_core_compose_template: "{{ playbook_dir }}/templates/my-compose.yml.j2"
+    komodo_core_env_template: "{{ playbook_dir }}/templates/my-compose.env.j2"
+  roles:
+    - role: komodo_core
+```
+
+The built-in templates (in the role's `templates/` directory) are a good starting
+point — copy them into your project and modify as needed.
 
 ---
 

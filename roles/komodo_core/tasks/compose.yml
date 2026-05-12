@@ -1,7 +1,7 @@
 ---
 - name: Template Docker Compose file
   ansible.builtin.template:
-    src: compose.yml.j2
+    src: "{{ komodo_core_compose_template }}"
     dest: "{{ komodo_core_dir }}/compose.yml"
     owner: root
     group: root
@@ -10,7 +10,7 @@
 
 - name: Template compose.env file
   ansible.builtin.template:
-    src: compose.env.j2
+    src: "{{ komodo_core_env_template }}"
     dest: "{{ komodo_core_dir }}/compose.env"
     owner: root
     group: root
