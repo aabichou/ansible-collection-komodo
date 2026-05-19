@@ -40,7 +40,7 @@ periphery_config_path: /etc/komodo/periphery.config.toml
 #   Single-node (Periphery on same host as Core): "ws://localhost:9120"
 #   Multi-node (private network):                 "ws://10.0.0.4:9120"
 #   Via Traefik/TLS:                              "wss://komodo.example.com"
-periphery_core_address: "ws://localhost:{{ komodo_core_port | default(9120) }}"
+periphery_core_address: "ws://{{ hostvars[groups['komodo_core'][0]]['ansible_host'] | default('localhost') }}:{{ komodo_core_port | default(9120) }}"
 
 # The name this Periphery will register/connect as in Komodo.
 # Must match an existing Server name, or Periphery will create one using
